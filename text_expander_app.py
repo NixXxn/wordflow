@@ -1680,47 +1680,45 @@ class ModernTextExpander:
                     return "[Clipboard Error]"
             return "[Clipboard N/A]"
 
-        result = text
-        result = result.replace("{date}", now.strftime(date_format_str))
-        result = result.replace("{time}", now.strftime("%H:%M"))
-        result = result.replace("{date_long}", now.strftime(month_format_str))
-        result = result.replace("{weekday}", current_weekday)
+        def get_replacement(match):
+            full_match = match.group(0)
+            content = match.group(1)
 
-        if "{clipboard}" in result:
-            result = result.replace("{clipboard}", get_clipboard_content())
+            if content == "date":
+                return now.strftime(date_format_str)
+            elif content == "time":
+                return now.strftime("%H:%M")
+            elif content == "date_long":
+                return now.strftime(month_format_str)
+            elif content == "weekday":
+                return current_weekday
+            elif content == "clipboard":
+                return get_clipboard_content()
+            elif content.startswith("random:"):
+                try:
+                    import random
+                    range_str = content[7:] # remove "random:"
+                    min_val_str, max_val_str = range_str.split("-", 1)
+                    min_val = int(min_val_str.strip())
+                    max_val = int(max_val_str.strip())
+                    if min_val <= max_val:
+                        return str(random.randint(min_val, max_val))
+                    else:
+                        return f"[Random Error: min({min_val}) > max({max_val})]"
+                except Exception as e:
+                    log(f"Error processing random placeholder {full_match}: {e}")
+                    return f"[Random Error: {full_match}]"
+            elif content.startswith("input:"):
+                prompt = content[6:] # remove "input:"
+                return self._get_expansion_input(prompt_text=prompt)
 
-        def replace_random(match_obj):
-            try:
-                import random
-                min_val_str, max_val_str = match_obj.group(1).split("-", 1)
-                min_val = int(min_val_str.strip())
-                max_val = int(max_val_str.strip())
-                if min_val <= max_val:
-                    return str(random.randint(min_val, max_val))
-                else:
-                    return f"[Random Error: min({min_val}) > max({max_val})]"
-            except Exception as e:
-                log(f"Error processing random placeholder {match_obj.group(0)}: {e}")
-                return f"[Random Error: {match_obj.group(0)}]"
+            return full_match
 
-        result = re.sub(r"\{random:([0-9]+\s*-\s*[0-9]+)\}", replace_random, result)
-
-        input_pattern = r"\{input:([^}]*)\}"
-        input_matches = list(re.finditer(input_pattern, result))
-        input_values = []
-
-        # Collect all input values first
-        for match in input_matches:
-            full_placeholder = match.group(0)
-            # Use _get_expansion_input for runtime dialogs
-            user_input = self._get_expansion_input(prompt_text=match.group(1))
-            input_values.append((full_placeholder, user_input))
-
-        # Then replace them
-        for original_ph, new_value in input_values:
-            result = result.replace(original_ph, new_value, 1)
-
-        return result
+        # Single-pass replacement using regex to prevent recursive expansion vulnerabilities
+        # This regex matches all supported placeholders in one go.
+        # Note: random only matches valid ranges to mimic original strict behavior
+        pattern = r"\{(input:[^}]*|random:[0-9]+\s*-\s*[0-9]+|date|time|date_long|weekday|clipboard)\}"
+        return re.sub(pattern, get_replacement, text)
 
     def _get_expansion_input(self, prompt_text=""):
         """

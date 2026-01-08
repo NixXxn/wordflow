@@ -1,0 +1,4 @@
+## 2025-05-08 - Recursive Placeholder Injection via Clipboard
+**Vulnerability:** The text expander processed placeholders in multiple passes (Date/Time, then Clipboard, then Random, then Input). This allowed a malicious clipboard content (e.g., `{random:1-100}` or `{input:Prompt}`) to be recursively expanded when a snippet contained `{clipboard}`. This could lead to unexpected behavior or social engineering (fake prompts).
+**Learning:** Sequential string replacements on the same buffer where user input (clipboard) is injected is a common recipe for injection vulnerabilities.
+**Prevention:** Use a single-pass replacement strategy (e.g., regex callback) where all placeholders are identified in the original string and replaced once. Substituted values should never be re-scanned for further replacements.

@@ -2021,7 +2021,7 @@ class ModernTextExpander:
 
             # Iterate through sorted snippet keys (longest first)
             # This handles cases where one shortcut is a prefix of another (e.g., "sig" and "signow").
-            possible_shortcuts = sorted(current_snippets.keys(), key=len, reverse=True)
+            possible_shortcuts = self.snippet_manager.get_sorted_keys()
 
             for shortcut in possible_shortcuts:
                 # Check if the current input ends with the shortcut

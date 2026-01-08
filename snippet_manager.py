@@ -7,6 +7,7 @@ class SnippetManager:
     def __init__(self, app_dir):
         self.snippets_file = os.path.join(app_dir, "snippets.json")
         self.snippets = self._load_snippets()
+        self._sorted_keys = None
 
     def _load_snippets(self):
         """Loads snippets from file, including format conversion and error handling."""
@@ -99,14 +100,22 @@ class SnippetManager:
             "category": category,
             "description": description,
         }
+        self._sorted_keys = None
         return self.save_snippets()
 
     def delete_snippet(self, shortcut):
         """Deletes a snippet by shortcut."""
         if shortcut in self.snippets:
             del self.snippets[shortcut]
+            self._sorted_keys = None
             return self.save_snippets()
         return False
+
+    def get_sorted_keys(self):
+        """Returns snippet keys sorted by length (longest first), cached."""
+        if self._sorted_keys is None:
+            self._sorted_keys = sorted(self.snippets.keys(), key=len, reverse=True)
+        return self._sorted_keys
 
     def get_all_categories(self):
         """Returns a sorted list of all unique categories from snippets."""

@@ -102,6 +102,11 @@ class ModernTextExpander:
         self.create_settings_tab()
         self.create_help_tab()
 
+        # Keyboard shortcuts
+        self.root.bind("<Control-n>", self.create_new_snippet)
+        self.root.bind("<Control-s>", self.save_snippet)
+        self.root.bind("<Control-f>", self.focus_search)
+
         # Now, with all UI widgets created, set up tooltips if enabled in config.
         if self.config_manager.get("show_tooltips", True):
             self.setup_tooltips()
@@ -535,10 +540,10 @@ class ModernTextExpander:
 
     def create_snippets_tab(self):
         """Creates the snippets management tab with improved layout."""
-        snippets_frame = ttk.Frame(self.notebook, padding=10)
-        self.notebook.add(snippets_frame, text="  Snippets  ")
+        self.snippets_frame = ttk.Frame(self.notebook, padding=10)
+        self.notebook.add(self.snippets_frame, text="  Snippets  ")
 
-        toolbar = ttk.Frame(snippets_frame)
+        toolbar = ttk.Frame(self.snippets_frame)
         toolbar.pack(fill="x", pady=(0, 10))
 
         new_btn = ttk.Button(
@@ -558,9 +563,9 @@ class ModernTextExpander:
         self.search_var = tk.StringVar()
         self.search_var.trace_add("write", lambda *args: self.refresh_snippet_list())
 
-        search_entry = ttk.Entry(search_frame, textvariable=self.search_var)
-        search_entry.pack(side="left", fill="x", expand=True)
-        self.create_tooltip(search_entry, "Search snippets by shortcut, content, or description")
+        self.search_entry = ttk.Entry(search_frame, textvariable=self.search_var)
+        self.search_entry.pack(side="left", fill="x", expand=True)
+        self.create_tooltip(self.search_entry, "Search snippets by shortcut, content, or description (Ctrl+F)")
 
 
         ttk.Label(search_frame, text="Category:").pack(side="left", padx=(10, 5))
@@ -579,7 +584,7 @@ class ModernTextExpander:
 
 
         # Main split view
-        paned = ttk.PanedWindow(snippets_frame, orient="horizontal")
+        paned = ttk.PanedWindow(self.snippets_frame, orient="horizontal")
         paned.pack(fill="both", expand=True)
 
         # Left panel - Snippet list with headers
@@ -606,6 +611,7 @@ class ModernTextExpander:
         tree_scroll_y.pack(side="right", fill="y")
 
         self.snippet_tree.bind("<<TreeviewSelect>>", self.on_select_snippet)
+        self.snippet_tree.bind("<Delete>", lambda e: self.delete_snippet())
         self.create_tooltip(self.snippet_tree, "Select a snippet to view or edit its details")
 
 
@@ -745,7 +751,7 @@ class ModernTextExpander:
             btn_frame, text="Save", command=self.save_snippet, style="Accent.TButton"
         )
         save_btn.pack(side="left", padx=5)
-        self.create_tooltip(save_btn, "Save changes to the current snippet")
+        self.create_tooltip(save_btn, "Save changes to the current snippet (Ctrl+S)")
 
         delete_btn = ttk.Button(
             btn_frame,
@@ -754,7 +760,7 @@ class ModernTextExpander:
             style="Danger.TButton",
         )
         delete_btn.pack(side="left", padx=5)
-        self.create_tooltip(delete_btn, "Delete the selected snippet")
+        self.create_tooltip(delete_btn, "Delete the selected snippet (Del)")
 
 
         clear_btn = ttk.Button(btn_frame, text="Clear", command=self.clear_editor)
@@ -1178,6 +1184,14 @@ class ModernTextExpander:
 
             ttk.Label(resource_frame, text=desc).pack(side="left", padx=(10, 0))
 
+    def focus_search(self, event=None):
+        """Switches to the snippets tab and focuses the search bar."""
+        if hasattr(self, "snippets_frame") and self.notebook.select() != str(self.snippets_frame):
+            self.notebook.select(self.snippets_frame)
+
+        if hasattr(self, "search_entry"):
+            self.search_entry.focus_set()
+
     def refresh_snippet_list(self):
         """Refreshes the snippet tree view with current data, applying filters."""
         for item in self.snippet_tree.get_children():
@@ -1389,14 +1403,20 @@ class ModernTextExpander:
         self.highlight_placeholders()
         self.update_line_numbers()
 
-    def create_new_snippet(self):
+    def create_new_snippet(self, event=None):
         """Clears the editor to create a new snippet."""
+        if hasattr(self, "snippets_frame") and self.notebook.select() != str(self.snippets_frame):
+            self.notebook.select(self.snippets_frame)
+
         self.clear_editor()
         if hasattr(self, "shortcut_entry_widget"):
             self.shortcut_entry_widget.focus_set()
 
-    def save_snippet(self):
+    def save_snippet(self, event=None):
         """Saves the current snippet from the editor."""
+        if hasattr(self, "snippets_frame") and self.notebook.select() != str(self.snippets_frame):
+            return
+
         shortcut = self.shortcut_var.get().strip()
         text = self.editor.get("1.0", "end-1c").strip()
         category = self.category_var.get().strip() or "General"
@@ -1467,7 +1487,7 @@ class ModernTextExpander:
                 invalid.append(f"{full_placeholder} (unknown placeholder)")
         return invalid
 
-    def delete_snippet(self):
+    def delete_snippet(self, event=None):
         """Deletes the selected snippet with confirmation."""
         selection = self.snippet_tree.selection()
         if not selection:

@@ -161,42 +161,52 @@ class ModernTextExpander:
         self.theme_var = tk.StringVar(value="light") # Always set to 'light' for consistency
 
     def create_default_icon(self):
-        """Creates a default icon file if none exists or loading fails, suitable for tray and window."""
+        """Creates a modern icon file if none exists or loading fails, suitable for tray and window."""
         try:
             icon_file = os.path.join(APP_DIR, "icon.ico")
+            # We recreate it if it doesn't exist to ensure the new design is applied if the user has no icon
             if os.path.exists(icon_file):
                 self.icon_path = icon_file
                 return
 
             if SYSTRAY_AVAILABLE:
-                img = Image.new("RGBA", (64, 64), color=(0, 0, 0, 0))
+                # Create a nicer icon: Rounded square with 'W'
+                size = (64, 64)
+                img = Image.new("RGBA", size, color=(0, 0, 0, 0))
                 draw = ImageDraw.Draw(img)
 
-                background_color = self.theme["accent"]
-                draw.rectangle([(0, 0), (63, 63)], fill=background_color)
-
-                try:
-                    font = ImageFont.truetype("arial.ttf", 24)
-                except IOError:
-                    try: # Fallback to a common system font if Arial isn't found
-                        font = ImageFont.truetype("segoe ui bold.ttf", 24)
-                    except:
-                        font = ImageFont.load_default() # Fallback to default PIL font
-
-                text = "TE"
+                # Colors
+                bg_color = self.theme["accent"] # Use accent color (e.g., blue)
                 text_color = (255, 255, 255)
+
+                # Draw rounded rectangle (simulated by ellipse + rectangles or just a simple shape)
+                # For simplicity and robustness, we'll draw a circle background
+                draw.ellipse([(2, 2), (61, 61)], fill=bg_color)
+
+                # Draw "W" for Wordflow
+                try:
+                    # Try to use a better font
+                    font = ImageFont.truetype("arial.ttf", 36)
+                except IOError:
+                    try:
+                        font = ImageFont.truetype("segoe ui bold.ttf", 36)
+                    except:
+                        font = ImageFont.load_default()
+
+                text = "W"
 
                 try:
                     left, top, right, bottom = draw.textbbox((0, 0), text, font=font)
                     text_width = right - left
                     text_height = bottom - top
-                    position = ((64 - text_width) // 2, (64 - text_height) // 2)
                 except AttributeError:
                     text_width, text_height = draw.textsize(text, font=font)
-                    position = ((64 - text_width) // 2, (64 - text_height) // 2)
 
+                position = ((64 - text_width) // 2, (64 - text_height) // 2 - 2) # Slight vertical adjustment
                 draw.text(position, text, font=font, fill=text_color)
-                img.save(icon_file, format="ICO")
+
+                # Save as ICO
+                img.save(icon_file, format="ICO", sizes=[(64, 64)])
                 self.icon_path = icon_file
                 log(f"Created default icon at {icon_file}")
         except Exception as e:
@@ -1712,8 +1722,18 @@ class ModernTextExpander:
         # Collect all input values first
         for match in input_matches:
             full_placeholder = match.group(0)
+            content = match.group(1)
+
+            prompt_text = content
+            default_value = ""
+
+            if "|" in content:
+                parts = content.split("|", 1)
+                prompt_text = parts[0]
+                default_value = parts[1]
+
             # Use _get_expansion_input for runtime dialogs
-            user_input = self._get_expansion_input(prompt_text=match.group(1))
+            user_input = self._get_expansion_input(prompt_text=prompt_text, default_value=default_value)
             input_values.append((full_placeholder, user_input))
 
         # Then replace them
@@ -1722,7 +1742,7 @@ class ModernTextExpander:
 
         return result
 
-    def _get_expansion_input(self, prompt_text=""):
+    def _get_expansion_input(self, prompt_text="", default_value=""):
         """
         Shows a streamlined input dialog specifically for snippet expansion.
         Ensures it appears on top and grabs focus, positioned near the mouse.
@@ -1805,7 +1825,7 @@ class ModernTextExpander:
             justify=tk.LEFT,
         ).pack(anchor="w", pady=(0, 10))
 
-        input_var = tk.StringVar()
+        input_var = tk.StringVar(value=default_value)
         entry_field = tk.Entry(
             content_dialog_frame,
             textvariable=input_var,

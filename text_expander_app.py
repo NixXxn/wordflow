@@ -608,6 +608,16 @@ class ModernTextExpander:
         self.snippet_tree.bind("<<TreeviewSelect>>", self.on_select_snippet)
         self.create_tooltip(self.snippet_tree, "Select a snippet to view or edit its details")
 
+        # Empty state label (hidden by default)
+        self.empty_state_label = ttk.Label(
+            left_frame,
+            text="",
+            justify="center",
+            font=FONTS["subheading"],
+            foreground=self.theme["border"],
+            background=self.theme["bg"],
+        )
+
 
         # Right panel - Editor with improved layout
         right_frame = ttk.Frame(paned)
@@ -1213,9 +1223,25 @@ class ModernTextExpander:
             )
 
         count = len(self.snippet_tree.get_children())
-        if count == 0 and (search or category_filter != "All Categories"):
-            self.status_var.set(f"No snippets match the current filter")
+
+        # Toggle empty state label
+        if count == 0:
+            if search:
+                msg = "No snippets match your search."
+            elif category_filter != "All Categories":
+                msg = "No snippets in this category."
+            else:
+                msg = "No snippets yet.\nClick 'New Snippet' to get started."
+
+            self.empty_state_label.configure(text=msg)
+            self.empty_state_label.place(relx=0.5, rely=0.5, anchor="center")
+
+            if search or category_filter != "All Categories":
+                self.status_var.set(f"No snippets match the current filter")
+            else:
+                self.status_var.set("No snippets available")
         else:
+            self.empty_state_label.place_forget()
             self.status_var.set(f"Showing {count} snippets")
 
     def refresh_categories(self):
@@ -2141,8 +2167,6 @@ class ModernTextExpander:
             kb_controller.type(replacement)
             self.root.after(0, lambda: self.status_var.set("Clipboard N/A, typed expansion"))
             self.root.after(0, lambda: self.status_indicator.config(foreground=self.theme["warning"]))
-
-        log(f"Expanded shortcut: {shortcut}")
 
 
     def show_error(self, title, message):

@@ -2019,39 +2019,49 @@ class ModernTextExpander:
 
             current_snippets = self.snippet_manager.get_all_snippets()
 
-            # Iterate through sorted snippet keys (longest first)
-            # This handles cases where one shortcut is a prefix of another (e.g., "sig" and "signow").
-            possible_shortcuts = sorted(current_snippets.keys(), key=len, reverse=True)
+            # OPTIMIZATION: Reverse Lookup Strategy
+            # Instead of iterating through all snippets (O(N) or O(N log N) if sorted),
+            # we iterate through possible suffixes of the current input (O(L) where L is input buffer length).
+            # This is significantly faster when N (snippets) is large.
+            # We start from the longest possible suffix to ensure longest match wins (e.g., \/signow\ over \/sig\).
 
-            for shortcut in possible_shortcuts:
-                # Check if the current input ends with the shortcut
-                if self.current_input.endswith(shortcut):
+            found_shortcut = None
+
+            # Iterate from longest possible suffix down to 1
+            for length in range(len(self.current_input), 0, -1):
+                suffix = self.current_input[-length:]
+                if suffix in current_snippets:
+                    # Found a potential match
+                    shortcut = suffix
+
+                    # Verify boundary conditions
                     is_command_like = not shortcut[0].isalnum() if shortcut and shortcut[0] else False
-
                     should_expand = False
+
                     if is_command_like:
-                        # If it's a command-like shortcut (e.g., starts with '/'), expand immediately
                         should_expand = True
                     else:
                         # For regular word-like shortcuts, check for a word boundary before it
-                        # E.g., "mytext" should not expand if typed as "somemytext"
-                        # The character before the shortcut must not be alphanumeric.
-                        idx = self.current_input.rfind(shortcut)
-                        if idx == 0: # Shortcut is at the very beginning of the buffer
+                        # Since suffix is the end of current_input, we check the char before suffix
+                        prefix_len = len(self.current_input) - len(shortcut)
+                        if prefix_len == 0:
                             should_expand = True
-                        elif idx > 0 and not self.current_input[idx - 1].isalnum():
+                        elif not self.current_input[prefix_len - 1].isalnum():
                             should_expand = True
 
                     if should_expand:
-                        snippet_data = current_snippets[shortcut]
-                        text_to_expand = snippet_data["text"]
+                        found_shortcut = shortcut
+                        break # Stop at the longest match
 
-                        # Schedule placeholder processing and text replacement on the main Tkinter thread
-                        # This is crucial for UI interactions (like input dialogs) to happen on the main thread.
-                        self.root.after(0, lambda s=shortcut, t=text_to_expand: self._process_and_replace_on_main_thread(s, t))
+            if found_shortcut:
+                snippet_data = current_snippets[found_shortcut]
+                text_to_expand = snippet_data["text"]
 
-                        self.current_input = "" # Reset buffer after expansion
-                        return # Stop checking other shortcuts, one expansion per trigger
+                # Schedule placeholder processing and text replacement on the main Tkinter thread
+                self.root.after(0, lambda s=found_shortcut, t=text_to_expand: self._process_and_replace_on_main_thread(s, t))
+
+                self.current_input = "" # Reset buffer after expansion
+                return
         except Exception as e:
             log(f"Error in on_key_press: {e}")
             self.current_input = "" # Reset buffer on any error

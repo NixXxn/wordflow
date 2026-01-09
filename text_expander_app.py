@@ -93,7 +93,7 @@ class ModernTextExpander:
 
         # Create notebook (tabs)
         self.notebook = ttk.Notebook(self.main_frame)
-        self.notebook.pack(fill="both", expand=True, padx=10, pady=10)
+        self.notebook.pack(fill="both", expand=True, padx=15, pady=15)
 
         # Create tabs (definitions placed before these calls)
         self.create_snippets_tab()
@@ -594,6 +594,9 @@ class ModernTextExpander:
         left_frame = ttk.Frame(paned)
         paned.add(left_frame, weight=1)
 
+        # Add a label for the list
+        ttk.Label(left_frame, text="My Snippets", font=FONTS["subheading"]).pack(anchor="w", pady=(0, 5))
+
         columns = ("shortcut", "category")
         self.snippet_tree = ttk.Treeview(
             left_frame, columns=columns, show="headings", selectmode="browse"
@@ -618,15 +621,11 @@ class ModernTextExpander:
 
 
         # Right panel - Editor with improved layout
-        right_frame = ttk.Frame(paned)
-        paned.add(right_frame, weight=2)
-
-        # Editor section with title
-        editor_frame = ttk.LabelFrame(right_frame, text="Snippet Editor", padding=10)
-        editor_frame.pack(fill="both", expand=True) # IMPORTANT: Allows editor to expand and push content down
+        right_frame = ttk.Frame(paned, padding=(10, 0, 0, 0)) # Add padding to separate from left panel
+        paned.add(right_frame, weight=3) # Give more weight to editor
 
         # Form layout
-        form_frame = ttk.Frame(editor_frame)
+        form_frame = ttk.Frame(right_frame)
         form_frame.pack(fill="x", pady=(0, 10))
 
         form_frame.columnconfigure(0, weight=0)
@@ -669,16 +668,18 @@ class ModernTextExpander:
         self.create_tooltip(desc_entry, "A short description to remember what this snippet is for")
         row += 1
 
-        ttk.Label(editor_frame, text="Content:").pack(anchor="w")
+        ttk.Label(right_frame, text="Content:", font=FONTS["subheading"]).pack(anchor="w", pady=(5, 0))
 
-        editor_content_frame = ttk.Frame(editor_frame)
-        editor_content_frame.pack(fill="both", expand=True)
+        editor_content_frame = ttk.Frame(right_frame)
+        editor_content_frame.pack(fill="both", expand=True, pady=5)
 
         self.editor = scrolledtext.ScrolledText(
             editor_content_frame,
             wrap="word",
             font=FONTS["monospace"],
             undo=True,
+            relief="flat",
+            borderwidth=1,
         )
         self.editor.pack(side="left", fill="both", expand=True)
         self.create_tooltip(self.editor, "Enter the full text content of your snippet here. Use placeholders for dynamic content.")
@@ -697,8 +698,10 @@ class ModernTextExpander:
         self.editor.bind("<KeyRelease>", self.highlight_placeholders, add="+")
 
         # Placeholders section with improved organization
-        ph_frame = ttk.LabelFrame(right_frame, text="Insert Placeholders")
-        ph_frame.pack(fill="x", pady=10) # IMPORTANT: Ensure this takes its space, but doesn't vertically expand unnecessarily
+        ph_frame = ttk.Frame(right_frame)
+        ph_frame.pack(fill="x", pady=10)
+
+        ttk.Label(ph_frame, text="Insert Placeholders", font=FONTS["subheading"]).pack(anchor="w", pady=(0, 5))
 
         placeholder_categories = {
             "Date & Time": [

@@ -76,3 +76,26 @@ Wordflow is a modern, Python-based text expander application designed to boost y
 1.  **Create a Snippet**: Click "New Snippet", enter a shortcut (e.g., `/email`) and the content (e.g., `my.email@example.com`).
 2.  **Save**: Click "Save".
 3.  **Type**: Open any other application (Notepad, Browser, etc.) and type `/email`. It will instantly change to your email address.
+
+## Building a Standalone Application
+
+If you prefer a standalone executable (an `.exe` file on Windows or an App file on macOS) instead of running the source code, you can build it yourself using the included script.
+
+1.  **Install Dependencies**:
+    Ensure you have installed the requirements as described above:
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+2.  **Run the Build Script**:
+    Run the following command:
+    ```bash
+    python build.py
+    ```
+
+3.  **Locate the Application**:
+    Once the build finishes successfully, check the `dist/` folder in your project directory.
+    -   **Windows**: You will see `Wordflow.exe`.
+    -   **macOS/Linux**: You will see a `Wordflow` executable.
+
+    You can move this file anywhere on your computer and run it directly.

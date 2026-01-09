@@ -47,9 +47,7 @@ class ModernTextExpander:
         # File paths
         self.snippets_file = os.path.join(APP_DIR, "snippets.json")
         self.config_file = os.path.join(APP_DIR, "config.json")
-        self.icon_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "icon.ico"
-        )
+        self.icon_path = os.path.join(APP_DIR, "icon.ico")
 
         # Default configuration (only light theme)
         self.default_config = {

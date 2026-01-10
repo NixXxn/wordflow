@@ -2027,8 +2027,12 @@ class ModernTextExpander:
 
             found_shortcut = None
 
-            # Iterate from longest possible suffix down to 1
-            for length in range(len(self.current_input), 0, -1):
+            # Iterate through known snippet lengths only (optimization)
+            # This avoids creating slices for lengths that don't match any snippet
+            for length in self.snippet_manager.get_snippet_lengths():
+                if length > len(self.current_input):
+                    continue
+
                 suffix = self.current_input[-length:]
                 if suffix in current_snippets:
                     # Found a potential match

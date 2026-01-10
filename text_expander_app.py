@@ -1691,12 +1691,14 @@ class ModernTextExpander:
 
         def replace_random(match_obj):
             try:
-                import random
+                # Use secrets for cryptographically secure random number generation
+                import secrets
                 min_val_str, max_val_str = match_obj.group(1).split("-", 1)
                 min_val = int(min_val_str.strip())
                 max_val = int(max_val_str.strip())
                 if min_val <= max_val:
-                    return str(random.randint(min_val, max_val))
+                    # secrets.randbelow(n) returns a random int in range [0, n)
+                    return str(min_val + secrets.randbelow(max_val - min_val + 1))
                 else:
                     return f"[Random Error: min({min_val}) > max({max_val})]"
             except Exception as e:

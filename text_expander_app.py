@@ -608,6 +608,15 @@ class ModernTextExpander:
         self.snippet_tree.bind("<<TreeviewSelect>>", self.on_select_snippet)
         self.create_tooltip(self.snippet_tree, "Select a snippet to view or edit its details")
 
+        # Empty state label (overlay)
+        self.empty_state_label = ttk.Label(
+            left_frame,
+            text="No snippets found",
+            font=FONTS["subheading"],
+            foreground=self.theme["fg"],
+            background=self.theme["bg"],
+            justify="center",
+        )
 
         # Right panel - Editor with improved layout
         right_frame = ttk.Frame(paned)
@@ -1213,6 +1222,21 @@ class ModernTextExpander:
             )
 
         count = len(self.snippet_tree.get_children())
+
+        # Empty state handling
+        if count == 0:
+            if search or category_filter != "All Categories":
+                msg = "No snippets match the current filter"
+            else:
+                msg = "No snippets yet.\nClick 'New Snippet' to start."
+
+            if hasattr(self, "empty_state_label"):
+                self.empty_state_label.config(text=msg)
+                self.empty_state_label.place(relx=0.5, rely=0.5, anchor="center")
+        else:
+            if hasattr(self, "empty_state_label"):
+                self.empty_state_label.place_forget()
+
         if count == 0 and (search or category_filter != "All Categories"):
             self.status_var.set(f"No snippets match the current filter")
         else:
